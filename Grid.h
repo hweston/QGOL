@@ -5,19 +5,20 @@
 #include <iostream>
 #include <vector>
 #include <string>
+#include <complex>
 
 using namespace std;
 
 class Grid {
 public:
-    Grid(string filename, int n, double B, string simulation, int z);
-    void GetNextState(int n, double B, string simulation,int z);
-    vector<vector<vector<double>>> grid;
-    string standard = "standard";
-    string entangled = "entangled";
-
-private:
-    int n;
+    Grid(string filename, string coeff_file, string coeff,int cells, vector <int> cellnum, int n, string simulation, string etype, int z);
+    void GetNextState(int n, double B, string simulation, string coeff, int z, string etype, int* signal);
+    void Collapse(int j, int k);
+    double EntangEntropy (int states,  vector<int> cellnum, int cells);
+    vector<vector<vector<complex<double>>>> grid;
+    vector<vector<double>> ent_states;
+    vector<complex<double>> coeffs;
+    double norm;
 
 };
 
