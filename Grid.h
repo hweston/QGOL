@@ -18,7 +18,7 @@ public:
     vector<vector<vector<complex<double>>>> grid;
     vector<vector<double>> ent_states;
     vector<complex<double>> coeffs;
-    double norm;
+
 
 };
 
