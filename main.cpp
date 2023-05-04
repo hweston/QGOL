@@ -10,13 +10,12 @@ using namespace Eigen;
 
 
 
-int main()
-{
+int main() {
 
-    int n = 50;                      /* Gridsize */
-    double B = ((pow(2,0.5))+1);              /* Parameter controlling growth rate */
+    int n = 30;                     /* Gridsize */
+    double B = (pow(2,0.5)+1);                 /* Parameter controlling evolution rules */
     int steps;                      /* Timesteps */
-    int z = 3;                      /* Size of grid vector 3rd dimension - corresponds to entangled states/alive/dead state */
+    int z = 4;                      /* Size of grid vector 3rd dimension - corresponds to entangled states/alive/dead state */
     int signal = 0;                 /* Signals wavefunction collapse - NB different for entangled vs. standard */
     int cells;                      /* Stores total number of cells */
     vector<int> collapsetimes(10);
@@ -29,46 +28,45 @@ int main()
     string coeff;                   /* Specifies whether coefficients are chosen or not */
     string collapse;
 
-    for(int i = 0;i<collapsetimes.size();i++){
+    for (int i = 0; i < collapsetimes.size(); i++) {
         collapsetimes[i] = 10000;
     }
 
     cout << "Type of Simulation: ";
     cin >> simulation;
-    if (simulation == "standard"){
+    if (simulation == "standard") {
         cout << "Do you want the wavefunction to collapse? (y/n) ";
         cin >> collapse;
-        if (collapse == "y"){
+        if (collapse == "y") {
             cout << "How many times?: ";
             cin >> no_of_collapses;
-            for(int i = 0; i<no_of_collapses;i++){
-                cout << "Time of collapse " << i+1 << ": ";
+            for (int i = 0; i < no_of_collapses; i++) {
+                cout << "Time of collapse " << i + 1 << ": ";
                 cin >> collapsetimes[i];
             }
 
         }
     }
-    if (simulation == "entangled"){
+    if (simulation == "entangled") {
         cout << "All states(y) or a chosen number of states(n)?: ";
         cin >> etype;
         cout << "Are coefficients for each state being chosen? (y/n): ";
         cin >> coeff;
-        if(coeff == "y"){
+        if (coeff == "y") {
             cout << "Please enter filename listing coeffient values: ";
             cin >> coeff_file;
         }
-        if (etype == "n"){
+        if (etype == "n") {
             cout << "How many states are entangled?: ";
             cin >> z;
-        }
-        else {
+        } else {
 
             cout << "Enter number of entangled states: ";
             cin >> z;
         }
 
     }
-    vector <int> cellnum (z);   /* Stores number of cells in each entangled state */
+    vector<int> cellnum(z);   /* Stores number of cells in each entangled state */
     if (etype == "n") {
         cout << "How many total cells are entangled?: ";
         cin >> cells;
@@ -78,11 +76,11 @@ int main()
                  << "?: ";
             cin >> cellnum[i];
             checkcells += cellnum[i];
-            if( i == z-1 ) {
+            if (i == z - 1) {
                 if (checkcells != cells) {
                     cout
                             << "Error: Your total cells doesn't match the sum of cells from each state. Please enter cell numbers again: ";
-                    i=0;
+                    i = 0;
                 }
             }
         }
@@ -93,15 +91,16 @@ int main()
     cout << "Enter number of steps of simulation: ";
     cin >> steps;
 
-    Grid state = Grid(filename, coeff_file, coeff,cells, cellnum,  n + 2,simulation,etype,z);
+
+    Grid state = Grid(filename, coeff_file, coeff, cells, cellnum, n + 2, simulation, etype, z);
 
     if (simulation == "standard") {
-        for (int i =0;i<steps;i++){
-           for(int a = 0; a<no_of_collapses; a++)
-                if (i == collapsetimes[a]){
-                    for (int j=1; j<n+1; j++){
-                        for (int k=1;k<n+1;k++){
-                            state.Collapse(j,k);
+        for (int i = 0; i < steps; i++) {
+            for (int a = 0; a < no_of_collapses; a++)
+                if (i == collapsetimes[a]) {
+                    for (int j = 1; j < n + 1; j++) {
+                        for (int k = 1; k < n + 1; k++) {
+                            state.Collapse(j, k);
                         }
                     }
                 }
@@ -110,15 +109,15 @@ int main()
     }
     if (simulation == "entangled") {
 
-        for (int i =0;i<steps;i++){
-            state.GetNextState(n + 2, B,simulation, coeff,  z, etype, &signal);
+        for (int i = 0; i < steps; i++) {
+            state.GetNextState(n + 2, B, simulation, coeff, z, etype, &signal);
         }
     }
 
-
+/*
     state.EntangEntropy(z,cellnum,cells);
+*/
 }
-
 
 /*
  * Change Entang entropy function.
@@ -132,7 +131,6 @@ int main()
  * Probably best to write "cells" vector so that partitioned areas A and B are not mixed.
  *
  */
-
 
 
 
