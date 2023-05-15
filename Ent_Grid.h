@@ -11,10 +11,10 @@ using namespace std;
 
 class Ent_Grid {
 public:
-    Ent_Grid(string filename, string coeff_file, string coeff,int cells, vector <int> cellnum, int n, int states);
-    void GetEntNextState(int n, double B, string coeff, int states, int *signal);
-    /*double EntangEntropy (int states,  vector<int> cellnum, int cells);*/
-    void Ent_Collapse(int n, string coeff, int *signal);
+    Ent_Grid(string filename, string coeff_file,int cells, vector <int> cellnum, int n, int states);
+    void GetEntNextState(int n, double B, int states, int *signal);
+    double EntangleEntropy (int n, int states, string ent_file, int sub_cells);
+    void Ent_Collapse(int n, int *signal, string coeff_file);
     vector<vector<vector<vector<complex<double>>>>> grid;
     vector<vector<double>> ent_states;
     vector<complex<double>> coeffs;
