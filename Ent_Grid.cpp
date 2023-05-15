@@ -10,11 +10,13 @@
 #include <map>
 #include <Eigen/Dense>
 #include <complex>
+#include <unsupported/Eigen/MatrixFunctions>
+
 
 using namespace std;
 using namespace Eigen;
 
-Ent_Grid::Ent_Grid(string filename, string coeff_file, string coeff,int cells, vector <int> cellnum, int n, int states)
+Ent_Grid::Ent_Grid(string filename, string coeff_file,int cells, vector <int> cellnum, int n, int states)
         :
 
         grid(vector<vector<vector<vector<complex<double>>>>>
@@ -33,7 +35,7 @@ Ent_Grid::Ent_Grid(string filename, string coeff_file, string coeff,int cells, v
     ifstream myfile(filename);
 
 
-    if (!myfile.is_open()) {
+    if (!myfile.is_open()) {                            /* Initialising grid with chosen seed */
         cout << "No such file" << endl;
         return;
     }
@@ -50,7 +52,7 @@ Ent_Grid::Ent_Grid(string filename, string coeff_file, string coeff,int cells, v
         myfile >> i >> j >> k >> l;
 
 
-        if (x < cells) {
+        if (x < cells) {                        /* Assigning cells their state */
             ent_states[x][0] = i + 1;
             ent_states[x][1] = j + 1;
             ent_states[x][2] = k;
@@ -63,12 +65,12 @@ Ent_Grid::Ent_Grid(string filename, string coeff_file, string coeff,int cells, v
 
     for (int a = 0; a<states; a++){
         for (int b = 0; b<cells; b++){
-            grid[ent_states[b][0]][ent_states[b][1]][a][1].real(1);         /* Initialising entangled cells as dead */
+            grid[ent_states[b][0]][ent_states[b][1]][a][1].real(1);         /* Initialising entangled cells as dead - don't want overlap between states */
         }
     }
     int counter = 0;
     for (int a = 0; a<states;a++) {
-        for (int b = 0; b< cellnum[a]; b++) {
+        for (int b = 0; b< cellnum[a]; b++) {                                    /* Re-initialising chosen entangled cells as dead */
             grid[ent_states[counter][0]][ent_states[counter][1]][a][0].real(ent_states[counter][2]);
             counter ++;
         }
@@ -76,7 +78,7 @@ Ent_Grid::Ent_Grid(string filename, string coeff_file, string coeff,int cells, v
 
     myfile.close();
 
-    if (coeff == "y"){
+    if (coeff_file != "No File"){               /* Storing coefficient of each state */
         ifstream cfile(coeff_file);
         if (!cfile.is_open()) {
             cout << "No such file" << endl;
@@ -94,42 +96,39 @@ Ent_Grid::Ent_Grid(string filename, string coeff_file, string coeff,int cells, v
         }
         cfile.close();
     }
-}
-
-void Ent_Grid::GetEntNextState(int n, double B,string coeff, int states, int *signal) {
-
-
-    vector<vector<double>> wavefunction(n, vector<double>(n, 0.0));
-    ofstream myfile;
-    myfile.open("outputs.txt", ios::app);
-    myfile << endl;
+    else{
+        for (int k = 0;k<states;k++){
+            coeffs[k] = 1/pow(states,0.5);
+        }
+    }
+    vector<vector<double>> wavefunction(n, vector<double>(n, 0.0));         /* Writing overall wave function to grid */
+    ofstream file1;
+    file1.open("outputs.txt", ios::app);
+    file1 << endl;
 
     for (int i = 1; i < n - 1; i++) {
-        myfile << endl;
+        file1 << endl;
         for (int k = 0; k < states; k++) {
             for (int j = 1; j < n - 1; j++) {
 
-                myfile << abs(grid[i][j][k][0]) << ",";
+                file1 << abs(grid[i][j][k][0]) << ",";
                 wavefunction[i][j] += abs(grid[i][j][k][0]);
 
             }
-            myfile << "\t";
+            file1 << "\t";
 
         }
 
 
         for (int j = 1; j < n - 1; j++) {
-            if (*signal == 0) {
-                myfile << wavefunction[i][j] / states << ",";
-            }
-            else{
-                myfile << wavefunction[i][j] << ",";
-            }
-
-
+            file1 << wavefunction[i][j]/states << ",";
         }
     }
-    myfile.close();
+    file1.close();
+
+}
+
+void Ent_Grid::GetEntNextState(int n, double B, int states, int *signal) { /* Advancing grid by one time step */
 
     vector<vector<vector<complex<double>>>> neighbours(n, vector<vector<complex<double>>>(n, vector<complex<double>>(states, 0.0)));
 
@@ -178,7 +177,7 @@ void Ent_Grid::GetEntNextState(int n, double B,string coeff, int states, int *si
                     grid[i][j][k][1].real(1);
                 }
 
-                double norm_constant = real(grid[i][j][k][2]) + real(grid[i][j][k][1]);
+                double norm_constant = real(grid[i][j][k][2]) + real(grid[i][j][k][1]);             /* Ensuring correct ratio of alive/dead coefficients */
                 grid[i][j][k][2].real(grid[i][j][k][2].real()/norm_constant);
                 grid[i][j][k][1].real(real(grid[i][j][k][1])/norm_constant);
                 if (abs(grid[i][j][k][0]) != 0) {
@@ -220,47 +219,151 @@ void Ent_Grid::GetEntNextState(int n, double B,string coeff, int states, int *si
 
             }
         }
+    vector<vector<double>> wavefunction(n, vector<double>(n, 0.0));
+    ofstream myfile;
+    myfile.open("outputs.txt", ios::app);
+    myfile << endl;
+
+    for (int i = 1; i < n - 1; i++) {                       /* Writing wave function to file */
+        myfile << endl;
+        for (int k = 0; k < states; k++) {
+            for (int j = 1; j < n - 1; j++) {
+
+                myfile << abs(grid[i][j][k][0]) << ",";
+                wavefunction[i][j] += abs(grid[i][j][k][0]);
+
+            }
+            myfile << "\t";
+
+        }
+
+
+        for (int j = 1; j < n - 1; j++) {
+            if (*signal == 0) {
+                myfile << wavefunction[i][j] / states << ",";
+            }
+            else{
+                myfile << wavefunction[i][j] << ",";
+            }
+
+
+        }
+    }
+    myfile.close();
 
 
     }
 
 
-/*
-    double Grid::EntangEntropy(int states, vector<int> cellnum, int cells) {
 
-        int maxcells = *max_element(cellnum.begin(), cellnum.end());
-        vector<vector<int>> cellstates(states, vector<int>(maxcells));
+    double Ent_Grid::EntangleEntropy(int n, int states, string ent_file, int sub_cells) {  /* Function calculating entanglement entropy */
+
+        vector<vector<double>> cellstates(states, vector<double>(pow(n,2),0));                                             /* State of each cell */
+        vector<vector<int>> subspace_coords(sub_cells, vector<int>(2,0));                                                                /* Co-ords of subsspace */
+        vector<int> cell_id(sub_cells,0);                                                                                                      /* Numbering each cell, and then denoting which ones are alive */
+        vector<vector<int>> matched_pairs(states,vector<int>(states,1));                                                                 /* Used in trace calculation */
+        vector<vector<complex<double>>> density_matrix(pow(2,pow(n,2)-sub_cells),                                     /* Density Matrix */
+                                                       vector<complex<double>>(pow(2,pow(n,2)-sub_cells)));
+        vector<complex<double>> density_vector(pow(pow(2,pow(n,2)-sub_cells),2),0);                  /* Density matrix as vector */
+        vector<int> state_id(states,0);                                                                                                              /* Representation of state in binary string */
+        complex<double> entropy;
+        for (int k = 0; k < states; k++) {
+            for (int i = 0; i < n; i++) {
+                for (int j = 0; j < n; j++) {
+                    cellstates[k][i*n+j] = grid[i+1][j+1][k][0].real();
+                }
+            }
+        }
+        ifstream myfile(ent_file);
+
+        if (!myfile.is_open()) {
+            cout << "No such entanglement file" << endl;
+            return 0;
+        }
+        int z = 0;
+        while (!myfile.eof()) {
+            int i, j;
+            myfile >> i >> j;
+            subspace_coords[z][0] = i;
+            subspace_coords[z][1] = j;
+            z++;
+
+        }
+        for(int a = 0;a<sub_cells;a++){
+            cell_id[a] = subspace_coords[a][0]*n +subspace_coords[a][1];
+        }
+
+        for (int k = 0;k<states;k++){
+            for (int j = 0;j<states;j++){
+                for (int a = 0;a<sub_cells;a++){
+                    if(cellstates[k][cell_id[a]] == cellstates[j][cell_id[a]]){
+                    }
+                    else{
+                        matched_pairs[k][j] = 0;
+                    }
+
+                }
+            }
+        }
+        sort(cell_id.begin(),cell_id.end());
+        for(int k = 0;k<states;k++){
+            for(int a =0;a<sub_cells;a++) {
+                cellstates[k].erase(cellstates[k].begin()+(cell_id[a]-a-1));        /* Erasing traced over cells */
+            }
+        }
+        for (int k = 0;k<states;k++){
+            for (int a=0;a<cellstates[0].size();a++){
+            state_id[k] += cellstates[k][a]*pow(2,cellstates[0].size()-1-a);        /* Writing each state as binary string */
+            }
+        }
+
         int counter = 0;
-        for (int j = 0; j<states; j++){
-          for (int i = 0; i < cellnum[j]; i++) {
-                cellstates[j][i] = grid[ent_states[counter][0]][ent_states[counter][1]][j];
-                counter ++;
+        for(int j = 0; j < states; j++) {
+            for(int k = 0;k<states;k++) {
+                if(matched_pairs[j][k] == 1) {
+                    density_matrix[pow(2,pow(n,2)-sub_cells)-1-state_id[k]][pow(2,pow(n,2)-sub_cells)-1-state_id[j]] += coeffs[k]*coeffs[j];
+                }
+            }
+        }
+        density_vector = density_matrix[0];
+        for (int a = 1;a<=pow(2,pow(n,2)-sub_cells);a++){
+            density_vector.insert(density_vector.end(),begin(density_matrix[a]),end(density_matrix[a]));
+        }
+
+        typedef Eigen::Matrix<complex<double>,Eigen::Dynamic,Eigen::Dynamic> matrix;                                    /* Converting to matrix in Eigen library for entropy calculation */
+        matrix dens_matrix = Eigen::Map<matrix>(density_vector.data(),pow(2,pow(n,2)-sub_cells),pow(2,pow(n,2)-sub_cells));
+
+        cout << endl;
+        VectorXcd e_values = dens_matrix.eigenvalues();
+        for(int a =0;a<pow(2,pow(n,2)-sub_cells);a++){
+            if (e_values(a) != 0.0){
+                entropy += e_values(a)*(log(e_values(a)));
             }
         }
 
-        MatrixXd density_matrix(num,num);
-        density_matrix = MatrixXd::Zero(num,num);
-        for (int j = 0; j<states;j++){
-            VectorXd phi1 = VectorXd::Map(cells[j].data(), cells[j].size());
-            for (int i = 0; i<states; i++) {
-                VectorXd phi2 = VectorXd::Map(cells[i].data(), cells[i].size());
-                density_matrix += phi1 * phi2.transpose();
-            }
-        }
+        cout << "Entropy of entanglement is" << -1.0*entropy << endl;
+    return 0;
+}
 
-        cout << density_matrix;
 
-    }
 
-*/
-void Ent_Grid::Ent_Collapse(int n, string coeff, int *signal){
+
+
+
+
+
+
+
+
+
+void Ent_Grid::Ent_Collapse(int n, int *signal, string coeff_file){
     double norm_factor = 0;
     int measured_state;
     for(int i = 0; i<coeffs.size();i++){
         norm_factor += abs(coeffs[i]);
     }
 
-    if (coeff == "y"){
+    if (coeff_file != "No File"){
         vector<int> ranges(coeffs.size());
         double ctotal;
         for (int m = 0; m<coeffs.size();m++){
