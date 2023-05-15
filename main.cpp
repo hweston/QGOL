@@ -2,9 +2,8 @@
 #include <string>
 #include "Grid.h"
 #include "Ent_Grid.h"
+
 #include <Eigen/Dense>
-
-
 
 using namespace std;
 using namespace Eigen;
@@ -12,21 +11,27 @@ using namespace Eigen;
 
 
 int main() {
+  /*  clock_t start, end;                              For measuring time taken for code to run
+    start = clock(); */
 
-    int n = 8;                                     /* Gridsize */
+
+
+    int n = 60;                                     /* Gridsize */
     double B = (pow(2, 0.5) + 1);     /* Parameter controlling evolution rules */
     int steps;                                      /* Timesteps */
-    int states = 4;                                 /* Size of grid vector 3rd dimension - corresponds to entangled states/alive/dead state */
-    int cells;                                      /* Stores total number of cells */
-    vector<int> collapsetimes(10,10000);      /* Number of measurements */
-    int no_of_collapses;                            /* No. of collapses */
-    int signal = 0;                                 /* Signals measurement*/
+    int states = 4;                                 /* Size of grid vector 3rd dimension - corresponds to entangled states or alive/dead state in standard version*/
+    int cells;                                      /* Stores total number of entangled cells */
+    vector<int> collapsetimes(10,10000);      /* Time of measurements */
+    int no_of_collapses = 0;                        /* No. of measurements */
+    int signal = 0;                                 /* Measurement signal*/
+    int sub_cells;                                  /* Size of subspace */
 
-    string filename;                /* Filename with initial seed */
-    string coeff_file;              /* Filename with coefficients for each state */
-    string simulation;              /* Specifies "entangled" or "standard simulation" */
-    string coeff;                   /* Specifies whether coefficients are chosen or not */
-    string collapse;                /* Specifies whether any measurements take place */
+    string filename;                                /* Filename with initial seed */
+    string coeff_file = "No File";                  /* Filename with coefficients for each state */
+    string simulation;                              /* Specifies "entangled" or "standard simulation" */
+    string collapse;                                /* Specifies whether any measurements take place */
+    string ent;                                     /* Specifies whether entropy entanglement is calculated */
+    string ent_file;                                /* File denoting coordiantes of cells in subspace */
 
     cout << "Type of Simulation: ";
     cin >> simulation;
@@ -52,13 +57,18 @@ int main() {
     }
 
     if (simulation == "entangled") {
-
-        cout << "After which timestep?: ";
-        cin >> collapsetimes[0];
+        if (collapse == "y") {
+            cout << "After which timestep?: ";
+            cin >> collapsetimes[0];
+        }
+        string coeff;
         cout << "Are coefficients for each state being chosen? (y/n): ";
         cin >> coeff;
+        if(coeff == "y"){
+            coeff_file = "temp";
+        }
 
-        if (coeff == "y") {
+        if (coeff_file != "No File") {
             cout << "Please enter filename listing coeffient values: ";
             cin >> coeff_file;
         }
@@ -70,7 +80,8 @@ int main() {
     }
 
     vector<int> cellnum(states);                 /* Stores number of cells in each entangled state */
-    if(simulation == "entangled"){
+
+    if(simulation == "entangled"){                  /* Checking and storing number of cells entangled*/
         int checkcells = 0;
         for (int i = 0; i < states; i++) {
                 cout << "How many cells are in state " << i + 1
@@ -93,7 +104,7 @@ int main() {
     cout << "Enter number of steps of simulation: ";
     cin >> steps;
 
-    if (simulation == "standard") {
+    if (simulation == "standard") {                             /* Performs standard (non-entangled) simulation */
 
         Grid state = Grid(filename, n + 2);
 
@@ -101,9 +112,9 @@ int main() {
 
             for (int a = 0; a < no_of_collapses; a++)
                 if (i == collapsetimes[a]) {
-                    for (int j = 1; j < n + 1; j++) {
-                        for (int k = 1; k < n + 1; k++) {
-                            state.Collapse(j, k);
+                    for (int j = 0; j < n; j++) {
+                        for (int k = 0; k < n; k++) {
+                            state.Collapse(j+1, k+1);
                         }
                     }
                 }
@@ -111,34 +122,28 @@ int main() {
         }
     }
 
-    if (simulation == "entangled") {
-        Ent_Grid state = Ent_Grid(filename,coeff_file, coeff,cells,cellnum,n+2,states);
+    if (simulation == "entangled") {                                                        /* Performs entangled simulation */
+        Ent_Grid state = Ent_Grid(filename, coeff_file, cells, cellnum, n + 2, states);
         for (int i = 0; i < steps; i++) {
             if (i == collapsetimes[0]) {
-                state.Ent_Collapse( n+2, coeff, &signal);
+                state.Ent_Collapse(n + 2, &signal, coeff_file);
             }
-            state.GetEntNextState(n + 2, B, coeff, states, &signal);
+            state.GetEntNextState(n + 2, B, states, &signal);
         }
+        cout << "Calculate Entanglement Entropy? (y/n): ";
+        cin >> ent;
+        if (ent == "y"){
+            cout << "Please enter filename which cell coordinates of subspace traced over: ";
+            cin >> ent_file;
+            cout << "How many cells in the subspace being traced over?: ";
+            cin >> sub_cells;
+            state.EntangleEntropy(n, states, ent_file, sub_cells);
+        }
+
     }
-
-/*
-    state.EntangEntropy(z,cellnum,cells);
-*/
+    /*end = clock();                                                Code for measuring speed of program
+    double tt = double(end - start)/double(CLOCKS_PER_SEC);
+    cout << fixed << "Time taken to run: " << tt;
+    return 0;
+     */
 }
-
-/*
- * Change Entang entropy function.
- * Form of wavefunction =
- * psi = Aphi1 + Bphi2
- * - need cells vector to be 2^(number of entangled cells) and then write each entangled state in binary to give state (phi1)
- * - then same for phi 2.
- * - NOT one state or the other (although could be structured this way - don't think like this)
- * Will probably struggle with more than 12 (?) entangled cells, this can be tested.
- * try and work out how to calculate reduced density matrix.
- * Probably best to write "cells" vector so that partitioned areas A and B are not mixed.
- *
- */
-
-
-
-
